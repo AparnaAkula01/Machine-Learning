@@ -1,0 +1,253 @@
+---
+title: "ML_ARM_HCLUST"
+output:
+  pdf_document: default
+  html_document: default
+date: "2022-09-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(arules)
+transactions <- read.transactions("C:/Users/Aparna Akula/Documents/Machine Learning/transactions_data.csv", 
+                                          format = "basket", rm.duplicates = FALSE, cols = NULL, 
+                                          sep = ",")
+
+```
+## Association Rule Mining
+```{r}
+rules <- arules::apriori(transactions, parameter = list(support = 0.025, confidence = 0.03, minlen = 2))
+inspect(rules)
+```
+
+## Rules based on Confidence
+```{r}
+SortRules_Conf <- sort(rules, by = 'confidence', decreasing = TRUE)
+inspect(SortRules_Conf[1:15])
+```
+## Rules based on Lift
+```{r}
+SortRules_Lift <- sort(rules, by = 'lift', decreasing = TRUE)
+inspect(SortRules_Lift[1:30])
+```
+## Rules based on Support
+```{r}
+SortRules_Sup <- sort(rules, by = 'support', decreasing = TRUE)
+inspect(SortRules_Sup[1:30])
+```
+```{r}
+library(arulesViz)
+plot(SortRules_Conf, method="graph", engine="interactive", limit = 15)
+```
+```{r}
+library(arulesViz)
+plot(SortRules_Lift, method="graph", engine="interactive", limit = 30)
+```
+
+```{r}
+library(arulesViz)
+plot(SortRules_Sup, method="graph", engine="htmlwidget", limit = 30)
+```
+
+
+## Implementing K-Means where K=4
+```{r}
+num_data <- read.csv("C:/Users/Aparna Akula/Documents/Machine Learning/numeric_coffee_beans.csv")
+scaled_data <- scale(num_data[,2:16])
+km <- kmeans(scaled_data, centers = 4, nstart = 25)
+```
+
+## Visulizing k-means
+```{r}
+library(factoextra)
+library(ggplot2)
+factoextra::fviz_cluster(km, data = scaled_data,
+              geom = "point",
+              ellipse.type = "convex"
+ )
+```
+
+# Hierarchical Clustering
+
+## Sampling numeric data
+```{r}
+sample = num_data[seq(150,200, by = 5),]
+sample_scaled <- scale(sample)
+```
+
+## Calculating distance matrices based on Euclidean, Canberra and Manhattan methods
+```{r}
+distMatrix_E <- dist(sample_scaled, method="euclidean")
+distMatrix_Mi <- dist(sample_scaled, method="minkowski", p =3)
+distMatrix_M <- dist(sample_scaled, method="manhattan")
+```
+
+## Hierarchical clustering based on Euclidean distance
+```{r}
+## Euclidean
+groups_E <- hclust(distMatrix_E,method="ward.D")
+plot(groups_E, cex=0.9, hang=-1, main = "Euclidean")
+rect.hclust(groups_E, k=3)
+```
+## Hierarchical clustering based on Minkowski distance
+```{r}
+## Minkowski
+groups_Mi <- hclust(distMatrix_Mi,method="ward.D")
+plot(groups_Mi, cex=0.9, hang=-1, main = "Minkowski")
+rect.hclust(groups_E, k=3)
+```
+## Hierarchical clustering based on Manhattan distance
+```{r}
+## Manhattan
+groups_M <- hclust(distMatrix_M,method="ward.D")
+plot(groups_M, cex=0.9, hang=-1, main = "Manhattan")
+rect.hclust(groups_E, k=3)
+```
+
+```{r}
+coffee_beans <- read.csv("C:/Users/Aparna Akula/Documents/Machine Learning/coffee_beans.csv")
+```
+
+***Assignment - 3***
+===================================================================================================
+***DECISION TREES***
+
+## Importing libraries
+```{r}
+library(caTools)
+library(party)
+library(dplyr)
+library(magrittr)
+library(rpart)
+library(rpart.plot) 
+library(rattle)
+library(arules)
+```
+
+## Reading the dataframe and removing unwanted columns
+```{r}
+dt_mixed <- read.csv("C:/Users/Aparna Akula/Documents/Machine Learning/dt_mixed.csv")
+dt_mixed = subset(dt_mixed, select = -c(Owner, Farm_Name, Company, Region, Producer, Expiration) )
+head(dt_mixed)
+```
+
+**Decision Tree - 1**
+## Splitting the data to train and test
+```{r}
+sample_data = sample.split(dt_mixed, SplitRatio = 0.8)
+train_data <- subset(dt_mixed, sample_data == TRUE)
+test_data <- subset(dt_mixed, sample_data == FALSE)
+```
+
+## Forming decision tree
+```{r}
+DT_1 = rpart(Processing_Method ~ ., data = train_data, method="class", cp=0.4, control = rpart.control(minsplit = 20, minbucket = 2, maxdepth = 4, usesurrogate = 2, xval =10 ))
+fancyRpartPlot(DT_1)
+```
+```{r}
+test_data_new <- test_data                               
+test_data_new$Variety[which(!(test_data_new$Variety %in% unique(train_data$Variety)))] <- NA  
+test_data_new 
+```
+
+## Predicting the labels
+```{r}
+DT1_Prediction= predict(DT_1, subset(test_data_new, select = -c(Processing_Method)), type="class")
+```
+
+## Confusion Matrix
+```{r}
+conf_matrix_1 = table(DT1_Prediction,test_data_new$Processing_Method)
+```
+
+**Decision Tree - 2**
+
+## Discritizing the data
+```{r}
+df_dis = discretizeDF(dt_mixed)
+df_dis
+```
+## Splitting the data to train and test
+```{r}
+sample_data = sample.split(df_dis, SplitRatio = 0.8)
+train_data <- subset(df_dis, sample_data == TRUE)
+test_data <- subset(df_dis, sample_data == FALSE)
+```
+
+## Forming decision tree
+```{r}
+DT_2 = rpart(Processing_Method ~ ., data = train_data, method="class", cp=0.4, control = rpart.control(minsplit = 20, minbucket = 2, maxdepth = 4, usesurrogate = 2, xval =10 ))
+fancyRpartPlot(DT_2)
+```
+
+```{r}
+test_data_new <- test_data                               
+test_data_new$Variety[which(!(test_data_new$Variety %in% unique(train_data$Variety)))] <- NA  
+test_data_new$Country_of_Origin[which(!(test_data_new$Country_of_Origin %in% unique(train_data$Country_of_Origin)))] <- NA  
+test_data_new 
+```
+## Predicting the labels
+```{r}
+DT2_Prediction= predict(DT_2, subset(test_data_new, select = -c(Processing_Method)), type="class")
+```
+
+## Confusion Matrix
+```{r}
+conf_matrix_2 = table(DT2_Prediction,test_data_new$Processing_Method) 
+```
+
+===================================================================================================
+***NAIVE BAYES***
+
+## Importing libraries
+```{r}
+library(e1071)
+library(caret)
+```
+
+## Disctrizing the data and storing it in a dataframe
+```{r}
+nB_mixed <- discretizeDF(dt_mixed)
+```
+## Splitting the data to train and test
+```{r}
+sample_data = sample.split(nB_mixed, SplitRatio = 0.7)
+train_data <- subset(nB_mixed, sample_data == TRUE)
+test_data <- subset(nB_mixed, sample_data == FALSE)
+```
+
+## Modelling based on naive bayes 
+```{r}
+nB_model <- naiveBayes(Processing_Method ~ ., data = train_data)
+```
+
+## Predicting the labels
+```{r}
+pred <- predict(nB_model, test_data, type="class")
+```
+
+## Confusion matrix for naive bayes   
+```{r}
+conf_matrix <- table(pred,test_data$Processing_Method)
+conf_matrix
+```
+w```{r}
+# References:-
+# https://towardsdatascience.com/how-to-export-pandas-dataframe-to-csv-2038e43d9c03
+# https://www.geeksforgeeks.org/association-rule-mining-in-r-programming/
+# https://www.jdatalab.com/data_science_and_data_mining/2018/10/15/association-rule-read-transactions.html
+# https://gatesboltonanalytics.com/?page_id=266
+# https://thispointer.com/pandas-delete-last-column-of-dataframe-in-python/
+
+# https://www.geeksforgeeks.org/decision-tree-in-r-programming/
+# https://data-flair.training/blogs/r-decision-trees/
+# https://gatesboltonanalytics.com/?page_id=280
+
+# https://www.tutorialspoint.com/how-to-find-the-sum-of-diagonal-elements-in-a-table-in-r
+# https://jakevdp.github.io/PythonDataScienceHandbook/05.05-naive-bayes.html
+# https://www.projectpro.io/recipes/use-naivebayes-classifier-r
+```
+
