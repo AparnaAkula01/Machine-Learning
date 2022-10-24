@@ -1,5 +1,5 @@
 ---
-title: "ML_ARM_HCLUST"
+title: "ML_PROJECT"
 output:
   pdf_document: default
   html_document: default
@@ -10,6 +10,9 @@ date: "2022-09-28"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+***Assignment - 2***
+===================================================================================================
+***CLUSTERING AND ARM***
 ```{r}
 library(arules)
 transactions <- read.transactions("C:/Users/Aparna Akula/Documents/Machine Learning/transactions_data.csv", 
